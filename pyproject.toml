@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "md2ipynb"
+version = "0.1.0"
+description = "Convert Jupyter notebooks to Markdown and back, with MCP integration."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [{ name = "Oscar Pellicer" }]
+dependencies = [
+  "nbformat>=5.10",
+  "mcp[cli]>=1.26.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3",
+]
+
+[project.scripts]
+ipynb2md = "md2ipynb.cli:ipynb2md_entry"
+md2ipynb = "md2ipynb.cli:md2ipynb_entry"
+notebook-converter = "md2ipynb.cli:main"
+md2ipynb-mcp = "md2ipynb.mcp_server:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
