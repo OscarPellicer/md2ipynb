@@ -41,6 +41,12 @@ This exposes these commands in the environment:
 - `notebook-converter`
 - `md2ipynb-mcp`
 
+Print the packaged terminal quickstart for agents:
+
+```bash
+md2ipynb --agents
+```
+
 The legacy entrypoint still works from the repo root:
 
 ```bash
@@ -107,6 +113,10 @@ The subcommands also support these aliases:
 
 - `extract` and `export` for `ipynb2md`
 - `create` and `import` for `md2ipynb`
+
+The CLI also supports a top-level flag for terminal-only guidance:
+
+- `--agents` prints the packaged `agents_quickstart.md` guide and exits
 
 ## Markdown format expectations
 

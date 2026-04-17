@@ -2,11 +2,37 @@ from __future__ import annotations
 
 import argparse
 import json
+from importlib import resources
 import sys
 from pathlib import Path
 
 from .config import AppConfig, install_cursor_integration, load_config, write_config
 from .converter import convert_markdown_paths_to_notebooks, convert_notebook_paths_to_markdown
+
+
+def get_agents_quickstart_text() -> str:
+    return resources.files("md2ipynb").joinpath("agents_quickstart.md").read_text(encoding="utf-8")
+
+
+def get_dynamic_instructions_text() -> str | None:
+    config = load_config()
+    instructions_text = config.effective_instructions()
+    if instructions_text:
+        return instructions_text
+
+    local_instructions = Path.cwd() / "instructions.md"
+    if local_instructions.is_file():
+        return local_instructions.read_text(encoding="utf-8").strip()
+
+    return None
+
+
+def render_agents_output() -> str:
+    quickstart = get_agents_quickstart_text().strip()
+    instructions_text = get_dynamic_instructions_text()
+    if not instructions_text:
+        return f"{quickstart}\n"
+    return f"{quickstart}\n\n{instructions_text}\n"
 
 
 def _add_shared_conversion_arguments(parser: argparse.ArgumentParser, output_help: str) -> None:
@@ -39,6 +65,11 @@ def _add_shared_conversion_arguments(parser: argparse.ArgumentParser, output_hel
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Convert Jupyter notebooks and Markdown in both directions.")
+    parser.add_argument(
+        "--agents",
+        action="store_true",
+        help="Print the packaged terminal quickstart for coding agents and exit.",
+    )
     subparsers = parser.add_subparsers(dest="command", required=True, help="Command to run")
 
     parser_ipynb2md = subparsers.add_parser(
@@ -139,6 +170,11 @@ def _handle_config_command(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if "--agents" in argv:
+        print(render_agents_output(), end="")
+        return 0
+
     args = build_parser().parse_args(argv)
 
     if args.command == "config":

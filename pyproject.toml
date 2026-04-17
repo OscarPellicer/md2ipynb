@@ -32,5 +32,8 @@ package-dir = { "" = "src" }
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+md2ipynb = ["agents_quickstart.md"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
