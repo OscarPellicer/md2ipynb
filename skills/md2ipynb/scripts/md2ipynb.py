@@ -16,6 +16,9 @@ except ImportError as error:
     ) from error
 
 
+# This script intentionally duplicates the small converter in src/md2ipynb.
+# That keeps the skill self-contained after local or remote installation.
+# Update both implementations together and keep parity tests passing.
 HEADER_PATTERN = re.compile(r"^(#{1,4})\s+(.+?)\s*$")
 PYTHON_FENCE_PATTERN = re.compile(r"^(\s*)```python\s*$", re.IGNORECASE)
 FENCE_PATTERN = re.compile(r"^```\s*$")

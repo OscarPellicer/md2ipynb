@@ -9,6 +9,15 @@ The repo provides:
 - A small Python conversion library backed by `nbformat`
 - Pytest coverage for the conversion behavior
 
+## Source layout
+
+The conversion logic exists in two places by design:
+
+- `src/md2ipynb/converter.py` powers the Python package and CLI.
+- `skills/md2ipynb/scripts/md2ipynb.py` is a self-contained copy bundled with the skill.
+
+The skill script is duplicated so the skill can be installed from the public GitHub repo and run immediately without requiring `pip install` of this package. Keep both implementations in sync; the test suite includes parity coverage for the package and skill script.
+
 ## When to use it
 
 Use the skill when an agent needs to create a notebook from scratch or make large edits across multiple cells, sections, explanations, or examples. The workflow is:
@@ -127,6 +136,8 @@ Run tests:
 ```bash
 pytest
 ```
+
+The tests exercise both the package implementation and the duplicated skill script. When changing conversion behavior, update both copies in the same commit.
 
 Validate the skill:
 

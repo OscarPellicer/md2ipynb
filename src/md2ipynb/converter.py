@@ -9,6 +9,9 @@ from typing import Iterable
 import nbformat
 
 
+# Keep behavior in sync with skills/md2ipynb/scripts/md2ipynb.py.
+# The skill duplicates this small converter so it can run after a remote skill
+# install without requiring `pip install` of this package.
 HEADER_PATTERN = re.compile(r"^(#{1,4})\s+(.+?)\s*$")
 PYTHON_FENCE_PATTERN = re.compile(r"^(\s*)```python\s*$", re.IGNORECASE)
 FENCE_PATTERN = re.compile(r"^```\s*$")

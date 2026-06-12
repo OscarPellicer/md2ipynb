@@ -11,6 +11,8 @@ Use this skill to author or substantially rewrite Jupyter notebooks through Mark
 
 For small edits, cell execution, output inspection, kernel state, or notebook UI operations, use notebook-native tools instead of this workflow.
 
+The bundled `scripts/md2ipynb.py` intentionally duplicates the small converter in the source package. This keeps the skill self-contained when installed from GitHub without requiring a package install; update both copies together.
+
 ## Workflow
 
 1. Check dependencies:
