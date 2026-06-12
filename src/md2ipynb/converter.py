@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
@@ -11,6 +12,19 @@ import nbformat
 HEADER_PATTERN = re.compile(r"^(#{1,4})\s+(.+?)\s*$")
 PYTHON_FENCE_PATTERN = re.compile(r"^(\s*)```python\s*$", re.IGNORECASE)
 FENCE_PATTERN = re.compile(r"^```\s*$")
+KEEP_MARKDOWN_DIRECTIVE_PATTERN = re.compile(r"^\s*<!--\s*md2ipynb:\s*keep-markdown\s*-->\s*$", re.IGNORECASE)
+
+DEFAULT_NOTEBOOK_METADATA = {
+    "kernelspec": {
+        "display_name": "Python 3",
+        "language": "python",
+        "name": "python3",
+    },
+    "language_info": {
+        "name": "python",
+        "version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+    },
+}
 
 
 @dataclass(slots=True)
@@ -113,21 +127,36 @@ def notebook_to_markdown_document(notebook_path: str | Path) -> MarkdownDocument
     )
 
 
+def _new_markdown_cell(source: str):
+    cell = nbformat.v4.new_markdown_cell(source)
+    cell.metadata["language"] = "markdown"
+    return cell
+
+
+def _new_code_cell(source: str):
+    cell = nbformat.v4.new_code_cell(source)
+    cell.metadata["language"] = "python"
+    return cell
+
+
 def parse_markdown_to_notebook(markdown_text: str):
-    notebook = nbformat.v4.new_notebook()
+    notebook = nbformat.v4.new_notebook(metadata=DEFAULT_NOTEBOOK_METADATA.copy())
     markdown_lines: list[str] = []
     lines = markdown_text.splitlines()
     index = 0
+    keep_next_python_fence_as_markdown = False
 
     def flush_markdown() -> None:
         source = "\n".join(markdown_lines).strip()
         if source:
-            notebook.cells.append(nbformat.v4.new_markdown_cell(source))
+            notebook.cells.append(_new_markdown_cell(source))
         markdown_lines.clear()
 
     while index < len(lines):
         line = lines[index]
-        if PYTHON_FENCE_PATTERN.match(line.strip()):
+        if KEEP_MARKDOWN_DIRECTIVE_PATTERN.match(line):
+            keep_next_python_fence_as_markdown = True
+        elif PYTHON_FENCE_PATTERN.match(line.strip()) and not keep_next_python_fence_as_markdown:
             flush_markdown()
             code_lines: list[str] = []
             index += 1
@@ -137,8 +166,13 @@ def parse_markdown_to_notebook(markdown_text: str):
                     break
                 code_lines.append(code_line)
                 index += 1
-            notebook.cells.append(nbformat.v4.new_code_cell("\n".join(code_lines)))
+            notebook.cells.append(_new_code_cell("\n".join(code_lines)))
         else:
+            header_match = HEADER_PATTERN.match(line.strip())
+            if header_match and markdown_lines and any(existing_line.strip() for existing_line in markdown_lines):
+                flush_markdown()
+            if PYTHON_FENCE_PATTERN.match(line.strip()) and keep_next_python_fence_as_markdown:
+                keep_next_python_fence_as_markdown = False
             markdown_lines.append(line)
         index += 1
 

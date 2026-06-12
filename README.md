@@ -124,7 +124,8 @@ The current repo-specific authoring rules live in `instructions.md`.
 
 Important behavior:
 
-- Only ` ```python ... ``` ` blocks become notebook code cells.
+- ` ```python ... ``` ` blocks become notebook code cells.
+- If you want a Python-highlighted example to stay inside a markdown cell, add `<!-- md2ipynb: keep-markdown -->` immediately above that ` ```python ` block.
 - Plain fenced blocks ` ``` ... ``` ` remain Markdown content.
 - When exporting notebooks, any Markdown cell that already contains ` ```python ` fences is rewritten to plain fences and a warning is emitted. This avoids accidental conversion of Markdown examples into real code cells on the way back.
 

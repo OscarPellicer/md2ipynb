@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import nbformat
@@ -35,6 +36,79 @@ def test_plain_fences_remain_markdown_when_creating_notebook() -> None:
     assert "```\nprint('example')\n```" in notebook.cells[0].source
     assert notebook.cells[1].cell_type == "code"
     assert notebook.cells[1].source == "print('code')"
+
+
+def test_annotated_python_fence_remains_markdown() -> None:
+    notebook = parse_markdown_to_notebook(
+        "# Session handout\n\nOverview text.\n\n<!-- md2ipynb: keep-markdown -->\n```python\nprint('example')\n```\n"
+    )
+
+    assert len(notebook.cells) == 1
+    assert notebook.cells[0].cell_type == "markdown"
+    assert notebook.cells[0].metadata["language"] == "markdown"
+    assert "```python\nprint('example')\n```" in notebook.cells[0].source
+    assert "md2ipynb: keep-markdown" not in notebook.cells[0].source
+
+
+def test_generated_notebook_includes_python_metadata() -> None:
+    notebook = parse_markdown_to_notebook("# Lesson\n\n```python\nprint('code')\n```\n")
+
+    assert notebook.metadata["kernelspec"]["name"] == "python3"
+    assert notebook.metadata["language_info"]["name"] == "python"
+    assert notebook.cells[0].metadata["language"] == "markdown"
+    assert notebook.cells[1].metadata["language"] == "python"
+
+
+def test_heading_boundaries_split_markdown_cells() -> None:
+    notebook = parse_markdown_to_notebook("# Title\n\nIntro\n\n## Part one\n\nBody\n\n## Part two\n\nMore\n")
+
+    assert [cell.cell_type for cell in notebook.cells] == ["markdown", "markdown", "markdown"]
+    assert notebook.cells[0].source.startswith("# Title")
+    assert notebook.cells[1].source.startswith("## Part one")
+    assert notebook.cells[2].source.startswith("## Part two")
+
+
+def test_custom_markdown_file_converts_to_non_empty_multicell_notebook(tmp_path: Path) -> None:
+    markdown_path = tmp_path / "session_guide.md"
+    markdown_path.write_text(
+        "# Session guide\n\n"
+        "Intro text.\n\n"
+        "## Environment setup\n\n"
+        "Use this command:\n\n"
+        "```bash\npython -m venv .venv\n```\n\n"
+        "<!-- md2ipynb: keep-markdown -->\n"
+        "```python\nprint('example snippet')\n```\n\n"
+        "## Actual code\n\n"
+        "```python\nprint('real code cell')\n```\n",
+        encoding="utf-8",
+    )
+
+    output_path = tmp_path / "session_guide.ipynb"
+    result = convert_markdown_paths_to_notebooks(
+        inputs=[str(markdown_path)],
+        output=str(output_path),
+        separate=False,
+        force=True,
+    )
+
+    assert result.output_paths == [output_path]
+
+    notebook_json = json.loads(output_path.read_text(encoding="utf-8"))
+
+    assert notebook_json["metadata"]["kernelspec"]["name"] == "python3"
+    assert len(notebook_json["cells"]) == 4
+    assert [cell["cell_type"] for cell in notebook_json["cells"]] == [
+        "markdown",
+        "markdown",
+        "markdown",
+        "code",
+    ]
+    assert notebook_json["cells"][0]["source"][0] == "# Session guide\n"
+    assert notebook_json["cells"][1]["source"][0] == "## Environment setup\n"
+    assert "```python\n" in "".join(notebook_json["cells"][1]["source"])
+    assert "md2ipynb: keep-markdown" not in "".join(notebook_json["cells"][1]["source"])
+    assert notebook_json["cells"][2]["source"][0] == "## Actual code"
+    assert notebook_json["cells"][3]["source"] == ["print('real code cell')"]
 
 
 def test_markdown_directory_can_be_combined_to_notebook_and_index(tmp_path: Path) -> None:
