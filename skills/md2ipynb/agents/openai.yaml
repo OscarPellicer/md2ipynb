@@ -1,0 +1,4 @@
+interface:
+  display_name: "md2ipynb"
+  short_description: "Notebook Markdown round-trip workflow"
+  default_prompt: "Use $md2ipynb to create or substantially edit a Jupyter notebook through Markdown."

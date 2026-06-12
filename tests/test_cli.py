@@ -15,7 +15,7 @@ def test_agents_flag_prints_packaged_quickstart_and_local_instructions(capsys, m
 
     assert exit_code == 0
     assert "# md2ipynb terminal quickstart" in captured.out
-    assert "md2ipynb config show" in captured.out
+    assert "notebook-native tools" in captured.out
     assert "## Instructions" in captured.out
     assert "Use sentence case headers." in captured.out
 

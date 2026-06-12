@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 import argparse
-import json
 from importlib import resources
 import sys
 from pathlib import Path
 
-from .config import AppConfig, install_cursor_integration, load_config, write_config
 from .converter import convert_markdown_paths_to_notebooks, convert_notebook_paths_to_markdown
 
 
@@ -15,11 +13,6 @@ def get_agents_quickstart_text() -> str:
 
 
 def get_dynamic_instructions_text() -> str | None:
-    config = load_config()
-    instructions_text = config.effective_instructions()
-    if instructions_text:
-        return instructions_text
-
     local_instructions = Path.cwd() / "instructions.md"
     if local_instructions.is_file():
         return local_instructions.read_text(encoding="utf-8").strip()
@@ -32,7 +25,7 @@ def render_agents_output() -> str:
     instructions_text = get_dynamic_instructions_text()
     if not instructions_text:
         return f"{quickstart}\n"
-    return f"{quickstart}\n\n{instructions_text}\n"
+    return f"{quickstart}\n\n## Instructions\n\n{instructions_text}\n"
 
 
 def _add_shared_conversion_arguments(parser: argparse.ArgumentParser, output_help: str) -> None:
@@ -92,38 +85,6 @@ def build_parser() -> argparse.ArgumentParser:
         "Output directory by default, or a single notebook file when using --join.",
     )
 
-    parser_config = subparsers.add_parser("config", help="Manage global md2ipynb configuration.")
-    config_subparsers = parser_config.add_subparsers(dest="config_command", required=True)
-
-    parser_config_path = config_subparsers.add_parser("path", help="Print the global config path.")
-    parser_config_path.add_argument("--config", help="Custom config path to resolve.")
-
-    parser_config_show = config_subparsers.add_parser("show", help="Print the effective config as JSON.")
-    parser_config_show.add_argument("--config", help="Custom config path to load.")
-
-    parser_config_init = config_subparsers.add_parser("init", help="Create a config file.")
-    parser_config_init.add_argument("--config", help="Custom config path to write.")
-    parser_config_init.add_argument("--python-executable", help="Python executable used for Cursor MCP integration.")
-    parser_config_init.add_argument("--instructions-file", help="Path to a file with notebook authoring instructions.")
-    parser_config_init.add_argument("--instructions-text", help="Inline notebook authoring instructions.")
-    parser_config_init.add_argument(
-        "--cell-threshold",
-        type=int,
-        default=2,
-        help="Maximum number of notebook cells to edit directly before preferring markdown round-trip.",
-    )
-    parser_config_init.add_argument("--cursor-root", help="Override the Cursor global configuration directory.")
-    parser_config_init.add_argument("--cursor-mcp-config-path", help="Override the Cursor mcp.json path.")
-    parser_config_init.add_argument("--cursor-rules-dir", help="Override the Cursor rules directory.")
-    parser_config_init.add_argument("--force", action="store_true", help="Overwrite an existing config file.")
-
-    parser_config_cursor = config_subparsers.add_parser(
-        "install-cursor",
-        help="Install global Cursor MCP and rules files using the current md2ipynb config.",
-    )
-    parser_config_cursor.add_argument("--config", help="Custom config path to load.")
-    parser_config_cursor.add_argument("--force", action="store_true", help="Overwrite an existing rule file.")
-
     return parser
 
 
@@ -136,39 +97,6 @@ def _print_conversion_summary(result) -> None:
         print(f"WARNING: {warning}", file=sys.stderr)
 
 
-def _handle_config_command(args: argparse.Namespace) -> int:
-    if args.config_command == "path":
-        print(load_config(args.config).config_path)
-        return 0
-
-    if args.config_command == "show":
-        config = load_config(args.config)
-        print(json.dumps(config.to_dict(), indent=2))
-        return 0
-
-    if args.config_command == "init":
-        config = AppConfig(
-            python_executable=args.python_executable,
-            instructions_file=args.instructions_file,
-            instructions_text=args.instructions_text,
-            markdown_edit_cell_threshold=args.cell_threshold,
-            cursor_root=args.cursor_root,
-            cursor_mcp_config_path=args.cursor_mcp_config_path,
-            cursor_rules_dir=args.cursor_rules_dir,
-            config_path=Path(args.config).expanduser() if args.config else load_config().config_path,
-        )
-        print(write_config(config, force=args.force))
-        return 0
-
-    if args.config_command == "install-cursor":
-        installed_paths = install_cursor_integration(load_config(args.config), force=args.force)
-        for path in installed_paths.values():
-            print(path)
-        return 0
-
-    raise ValueError(f"Unknown config command: {args.config_command}")
-
-
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     if "--agents" in argv:
@@ -176,9 +104,6 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     args = build_parser().parse_args(argv)
-
-    if args.command == "config":
-        return _handle_config_command(args)
 
     if args.command in {"ipynb2md", "extract", "export"}:
         result = convert_notebook_paths_to_markdown(

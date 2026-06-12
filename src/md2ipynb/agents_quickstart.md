@@ -1,15 +1,21 @@
-# md2ipynb / ipynb2md quickstart
+# md2ipynb terminal quickstart
 
-## Description
+Print this guide with:
 
-`md2ipynb` converts Jupyter notebooks to Markdown and back again, with the Markdown format designed to be easier for coding agents to edit safely. In particular:
+```bash
+md2ipynb --agents
+```
+
+`md2ipynb` converts Jupyter notebooks to Markdown and back again. Use this for creating notebooks from scratch or making substantial notebook edits through Markdown. For tiny edits, running cells, inspecting outputs, or kernel work, use notebook-native tools.
+
+## Format
 
 - Only ` ```python ... ``` ` blocks in the Markdown will become notebook code cells.
 - If you want a Python-highlighted example to stay markdown, add `<!-- md2ipynb: keep-markdown -->` immediately above that ` ```python ` block.
 - Plain / other fenced blocks ` ``` ... ``` ` remain Markdown content.
 - When exporting notebooks from Markdown, any Markdown cell that already contains ` ```python ` fences is rewritten to plain fences and a warning is emitted. This avoids accidental conversion of Markdown examples into real code cells on the way back.
 
-## Usage examples
+## Usage
 
 - Convert a notebook to Markdown: `ipynb2md lesson.ipynb`
 - Convert Markdown to a notebook: `md2ipynb lesson.md`
