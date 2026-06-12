@@ -33,9 +33,8 @@ def test_skill_script_round_trips_notebook_through_markdown(tmp_path: Path) -> N
     with notebook_path.open("w", encoding="utf-8") as handle:
         nbformat.write(notebook, handle)
 
-    scratch_dir = tmp_path / "scratch"
-    export_result = run_skill_script("ipynb2md", str(notebook_path), "--output", str(scratch_dir), "--force")
-    markdown_path = scratch_dir / "lesson.md"
+    export_result = run_skill_script("ipynb2md", str(notebook_path), "--force")
+    markdown_path = tmp_path / "lesson.md"
 
     assert str(markdown_path) in export_result.stdout
     assert "WARNING:" in export_result.stderr
@@ -62,13 +61,46 @@ def test_skill_script_creates_notebook_from_markdown_with_keep_markdown(tmp_path
     )
 
     output_path = tmp_path / "new_lesson.ipynb"
-    run_skill_script("md2ipynb", str(markdown_path), "--output", str(output_path), "--join", "--force")
+    run_skill_script("md2ipynb", str(markdown_path), "--output", str(output_path), "--force")
 
     notebook_json = json.loads(output_path.read_text(encoding="utf-8"))
     assert [cell["cell_type"] for cell in notebook_json["cells"]] == ["markdown", "markdown", "code"]
     assert "```python\n" in "".join(notebook_json["cells"][0]["source"])
     assert "md2ipynb: keep-markdown" not in "".join(notebook_json["cells"][0]["source"])
     assert notebook_json["cells"][2]["source"] == ["print('code cell')"]
+
+
+def test_skill_script_output_ipynb_path_writes_exact_single_notebook(tmp_path: Path) -> None:
+    markdown_path = tmp_path / "lesson.md"
+    markdown_path.write_text("# Lesson\n\n```python\nprint('code')\n```\n", encoding="utf-8")
+    output_path = tmp_path / "exact_output.ipynb"
+
+    result = run_skill_script("md2ipynb", str(markdown_path), "--output", str(output_path), "--force")
+
+    assert str(output_path) in result.stdout
+    assert output_path.is_file()
+    assert not (output_path / "lesson.ipynb").exists()
+
+
+def test_skill_script_output_ipynb_path_rejects_multiple_inputs(tmp_path: Path) -> None:
+    (tmp_path / "one.md").write_text("# One\n", encoding="utf-8")
+    (tmp_path / "two.md").write_text("# Two\n", encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SKILL_SCRIPT),
+            "md2ipynb",
+            str(tmp_path),
+            "--output",
+            str(tmp_path / "combined.ipynb"),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode != 0
+    assert "exactly one markdown input" in result.stderr
 
 
 def test_skill_script_matches_package_for_markdown_to_notebook(tmp_path: Path) -> None:
@@ -92,7 +124,7 @@ def test_skill_script_matches_package_for_markdown_to_notebook(tmp_path: Path) -
         separate=False,
         force=True,
     )
-    run_skill_script("md2ipynb", str(markdown_path), "--output", str(skill_output), "--join", "--force")
+    run_skill_script("md2ipynb", str(markdown_path), "--output", str(skill_output), "--force")
 
     package_notebook = nbformat.read(package_output, as_version=4)
     skill_notebook = nbformat.read(skill_output, as_version=4)

@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import nbformat
+import pytest
 
 from md2ipynb.cli import build_parser
 from md2ipynb.converter import convert_markdown_paths_to_notebooks, convert_notebook_paths_to_markdown, parse_markdown_to_notebook
@@ -109,6 +110,33 @@ def test_custom_markdown_file_converts_to_non_empty_multicell_notebook(tmp_path:
     assert "md2ipynb: keep-markdown" not in "".join(notebook_json["cells"][1]["source"])
     assert notebook_json["cells"][2]["source"][0] == "## Actual code"
     assert notebook_json["cells"][3]["source"] == ["print('real code cell')"]
+
+
+def test_markdown_output_ipynb_path_writes_exact_single_notebook(tmp_path: Path) -> None:
+    markdown_path = tmp_path / "lesson.md"
+    markdown_path.write_text("# Lesson\n\n```python\nprint('code')\n```\n", encoding="utf-8")
+    output_path = tmp_path / "custom_name.ipynb"
+
+    result = convert_markdown_paths_to_notebooks(
+        inputs=[str(markdown_path)],
+        output=str(output_path),
+        force=True,
+    )
+
+    assert result.output_paths == [output_path]
+    assert output_path.is_file()
+    assert not (output_path / "lesson.ipynb").exists()
+
+
+def test_markdown_output_ipynb_path_rejects_multiple_inputs(tmp_path: Path) -> None:
+    (tmp_path / "one.md").write_text("# One\n", encoding="utf-8")
+    (tmp_path / "two.md").write_text("# Two\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="exactly one markdown input"):
+        convert_markdown_paths_to_notebooks(
+            inputs=[str(tmp_path)],
+            output=str(tmp_path / "combined.ipynb"),
+        )
 
 
 def test_markdown_directory_can_be_combined_to_notebook_and_index(tmp_path: Path) -> None:

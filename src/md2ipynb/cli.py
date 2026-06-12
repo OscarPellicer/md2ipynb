@@ -82,7 +82,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_shared_conversion_arguments(
         parser_md2ipynb,
-        "Output directory by default, or a single notebook file when using --join.",
+        "Output directory by default, or an exact .ipynb path for one input. With --join, output is a single notebook file.",
     )
 
     return parser
@@ -105,27 +105,31 @@ def main(argv: list[str] | None = None) -> int:
 
     args = build_parser().parse_args(argv)
 
-    if args.command in {"ipynb2md", "extract", "export"}:
-        result = convert_notebook_paths_to_markdown(
-            inputs=args.inputs,
-            output=args.output,
-            separate=not args.join,
-            index=args.index,
-            force=args.force,
-        )
-        _print_conversion_summary(result)
-        return 0
+    try:
+        if args.command in {"ipynb2md", "extract", "export"}:
+            result = convert_notebook_paths_to_markdown(
+                inputs=args.inputs,
+                output=args.output,
+                separate=not args.join,
+                index=args.index,
+                force=args.force,
+            )
+            _print_conversion_summary(result)
+            return 0
 
-    if args.command in {"md2ipynb", "create", "import"}:
-        result = convert_markdown_paths_to_notebooks(
-            inputs=args.inputs,
-            output=args.output,
-            separate=not args.join,
-            index=args.index,
-            force=args.force,
-        )
-        _print_conversion_summary(result)
-        return 0
+        if args.command in {"md2ipynb", "create", "import"}:
+            result = convert_markdown_paths_to_notebooks(
+                inputs=args.inputs,
+                output=args.output,
+                separate=not args.join,
+                index=args.index,
+                force=args.force,
+            )
+            _print_conversion_summary(result)
+            return 0
+    except ValueError as error:
+        print(f"ERROR: {error}", file=sys.stderr)
+        return 2
 
     raise ValueError(f"Unknown command: {args.command}")
 

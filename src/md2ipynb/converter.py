@@ -61,6 +61,10 @@ def _resolve_target_path(path: Path, force: bool) -> Path:
     return path if force else get_unique_path(path)
 
 
+def _is_notebook_output_path(output: str | None) -> bool:
+    return bool(output and Path(output).expanduser().suffix.lower() == ".ipynb")
+
+
 def extract_headers(markdown_text: str) -> list[tuple[int, str]]:
     headers: list[tuple[int, str]] = []
     for line in markdown_text.splitlines():
@@ -277,6 +281,10 @@ def convert_markdown_paths_to_notebooks(
     force: bool = False,
 ) -> BatchConversionResult:
     markdown_paths = _collect_input_paths(inputs, ".md")
+    output_is_notebook_path = _is_notebook_output_path(output)
+    if separate and output_is_notebook_path and len(markdown_paths) != 1:
+        raise ValueError("A .ipynb output path can only be used with exactly one markdown input.")
+
     markdown_documents = [
         MarkdownDocument(
             source_path=path,
@@ -288,12 +296,15 @@ def convert_markdown_paths_to_notebooks(
     output_paths: list[Path] = []
 
     if separate:
-        output_dir = Path(output).expanduser() if output else None
+        output_dir = Path(output).expanduser() if output and not output_is_notebook_path else None
         if output_dir:
             output_dir.mkdir(parents=True, exist_ok=True)
         for document in markdown_documents:
-            target_parent = output_dir or document.source_path.parent
-            target = _resolve_target_path(target_parent / f"{document.source_path.stem}.ipynb", force=force)
+            if output_is_notebook_path:
+                target = _resolve_target_path(Path(output).expanduser(), force=force)
+            else:
+                target_parent = output_dir or document.source_path.parent
+                target = _resolve_target_path(target_parent / f"{document.source_path.stem}.ipynb", force=force)
             output_paths.append(_write_notebook(target, parse_markdown_to_notebook(document.content)))
     else:
         default_output = Path("combined_notebook.ipynb")

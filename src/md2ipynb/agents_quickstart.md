@@ -19,5 +19,8 @@ md2ipynb --agents
 
 - Convert a notebook to Markdown: `ipynb2md lesson.ipynb`
 - Convert Markdown to a notebook: `md2ipynb lesson.md`
+- Convert Markdown to an exact notebook path: `md2ipynb lesson.md --output lesson.ipynb --force`
 - Convert a directory of notebooks to Markdown and create an index: `ipynb2md notebooks_dir --output exported_dir_md --index notebook_index.md`
 - Convert a directory of Markdown files to notebooks and create an index: `md2ipynb markdown_dir --output generated_notebooks --index markdown_index.md`
+
+By default, use same-directory Markdown intermediates for notebook rewrites, then delete the `.md` file unless the user asks to keep it. A `.ipynb` output path is allowed only for one Markdown input; use an output directory for multiple separate notebooks or `--join` for one combined notebook.

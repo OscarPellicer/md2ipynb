@@ -19,22 +19,30 @@ The bundled `scripts/md2ipynb.py` intentionally duplicates the small converter i
    - If `python -c "import nbformat"` succeeds, use the active Python environment.
    - If `nbformat` is missing and the active environment is a normal project or virtual environment, install the small dependency with `python -m pip install -r <skill>/scripts/requirements.txt`.
    - If the environment looks global, managed, or sensitive, create a local virtual environment and install the requirements there.
-2. For an existing notebook, convert it to a temporary Markdown file:
+2. For an existing notebook, convert it to a temporary Markdown file beside the notebook:
 
 ```bash
-python <skill>/scripts/md2ipynb.py ipynb2md path/to/notebook.ipynb --output path/to/scratch --force
+python <skill>/scripts/md2ipynb.py ipynb2md path/to/notebook.ipynb --force
 ```
 
 3. Edit the Markdown file, not the notebook JSON.
 4. Convert the Markdown back to a notebook:
 
 ```bash
-python <skill>/scripts/md2ipynb.py md2ipynb path/to/scratch/notebook.md --output path/to/notebook.ipynb --force
+python <skill>/scripts/md2ipynb.py md2ipynb path/to/notebook.md --output path/to/notebook.ipynb --force
 ```
 
 5. Delete intermediate Markdown files by default unless the user explicitly asks to keep them.
 
-For a new notebook, write the notebook content as temporary Markdown first, convert it to `.ipynb`, then delete the Markdown source unless the user wants a paired source file.
+For a new notebook, write the notebook content as temporary Markdown beside the target notebook path, convert it to `.ipynb`, then delete the Markdown source unless the user wants a paired source file.
+
+## Output paths
+
+- `ipynb2md` writes Markdown beside each notebook by default. Prefer this for temporary intermediates because deleting one file is simpler than deleting a scratch directory.
+- `md2ipynb --output path/to/output-dir` writes separate notebooks into that directory.
+- `md2ipynb --output path/to/notebook.ipynb` writes exactly that notebook when there is one Markdown input.
+- `md2ipynb --output path/to/notebook.ipynb` errors if there are multiple Markdown inputs. Use an output directory, or use `--join --output path/to/notebook.ipynb` to combine them.
+- Export warnings about converted Python fences are expected when Markdown cells contained ` ```python ` examples; the warning means those examples were kept as Markdown for a safer round trip.
 
 ## Markdown format
 

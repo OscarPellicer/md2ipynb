@@ -25,7 +25,7 @@ Use the skill when an agent needs to create a notebook from scratch or make larg
 1. Convert a notebook to Markdown, or author a new notebook as Markdown.
 2. Edit the Markdown.
 3. Convert the Markdown back to `.ipynb`.
-4. Delete the intermediate Markdown unless the user asked to keep it.
+4. Delete the intermediate Markdown file unless the user asked to keep it.
 
 For tiny cell edits, running cells, inspecting outputs, kernel work, or notebook UI tasks, use notebook-native tools instead.
 
@@ -105,6 +105,7 @@ Convert Markdown to notebooks:
 
 ```bash
 md2ipynb lesson.md
+md2ipynb lesson.md --output lesson.ipynb --force
 md2ipynb markdown_sources --output generated_notebooks --index markdown_index.md
 md2ipynb markdown_sources appendix.md --join --output combined_notebook.ipynb
 ```
@@ -121,6 +122,13 @@ md2ipynb --agents
 - Plain fenced blocks remain Markdown content.
 - Add `<!-- md2ipynb: keep-markdown -->` immediately above a ` ```python ` block when a Python-highlighted example should stay inside a Markdown cell.
 - When exporting notebooks, Python fences inside Markdown cells are rewritten to plain fences and a warning is emitted. This prevents accidental conversion of examples into real code cells on round trip.
+
+## Output path behavior
+
+- `ipynb2md lesson.ipynb` writes `lesson.md` beside `lesson.ipynb`. This is the preferred temporary-intermediate workflow; delete `lesson.md` after converting back unless you want to keep it.
+- `md2ipynb lesson.md --output lesson.ipynb --force` writes exactly `lesson.ipynb`.
+- `md2ipynb lesson.md --output notebooks_dir` writes `notebooks_dir/lesson.ipynb`.
+- `md2ipynb markdown_dir --output combined.ipynb` errors when `markdown_dir` contains multiple Markdown files. Use an output directory for separate notebooks, or add `--join` to combine them into one notebook.
 
 ## Authoring rules
 

@@ -68,6 +68,10 @@ def _resolve_target_path(path: Path, force: bool) -> Path:
     return path if force else get_unique_path(path)
 
 
+def _is_notebook_output_path(output: str | None) -> bool:
+    return bool(output and Path(output).expanduser().suffix.lower() == ".ipynb")
+
+
 def extract_headers(markdown_text: str) -> list[tuple[int, str]]:
     headers: list[tuple[int, str]] = []
     for line in markdown_text.splitlines():
@@ -280,6 +284,10 @@ def convert_markdown_paths_to_notebooks(
     force: bool = False,
 ) -> BatchConversionResult:
     markdown_paths = _collect_input_paths(inputs, ".md")
+    output_is_notebook_path = _is_notebook_output_path(output)
+    if separate and output_is_notebook_path and len(markdown_paths) != 1:
+        raise ValueError("A .ipynb output path can only be used with exactly one markdown input.")
+
     markdown_documents = [
         MarkdownDocument(
             source_path=path,
@@ -291,12 +299,15 @@ def convert_markdown_paths_to_notebooks(
     output_paths: list[Path] = []
 
     if separate:
-        output_dir = Path(output).expanduser() if output else None
+        output_dir = Path(output).expanduser() if output and not output_is_notebook_path else None
         if output_dir:
             output_dir.mkdir(parents=True, exist_ok=True)
         for document in markdown_documents:
-            target_parent = output_dir or document.source_path.parent
-            target = _resolve_target_path(target_parent / f"{document.source_path.stem}.ipynb", force=force)
+            if output_is_notebook_path:
+                target = _resolve_target_path(Path(output).expanduser(), force=force)
+            else:
+                target_parent = output_dir or document.source_path.parent
+                target = _resolve_target_path(target_parent / f"{document.source_path.stem}.ipynb", force=force)
             output_paths.append(_write_notebook(target, parse_markdown_to_notebook(document.content)))
     else:
         default_output = Path("combined_notebook.ipynb")
@@ -340,7 +351,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser_md2ipynb = subparsers.add_parser("md2ipynb", aliases=["create", "import"])
     _add_shared_conversion_arguments(
         parser_md2ipynb,
-        "Output directory by default, or a single notebook file when using --join.",
+        "Output directory by default, or an exact .ipynb path for one input. With --join, output is a single notebook file.",
     )
     return parser
 
@@ -356,26 +367,30 @@ def _print_conversion_summary(result: BatchConversionResult) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    if args.command in {"ipynb2md", "extract", "export"}:
-        result = convert_notebook_paths_to_markdown(
-            inputs=args.inputs,
-            output=args.output,
-            separate=not args.join,
-            index=args.index,
-            force=args.force,
-        )
-        _print_conversion_summary(result)
-        return 0
-    if args.command in {"md2ipynb", "create", "import"}:
-        result = convert_markdown_paths_to_notebooks(
-            inputs=args.inputs,
-            output=args.output,
-            separate=not args.join,
-            index=args.index,
-            force=args.force,
-        )
-        _print_conversion_summary(result)
-        return 0
+    try:
+        if args.command in {"ipynb2md", "extract", "export"}:
+            result = convert_notebook_paths_to_markdown(
+                inputs=args.inputs,
+                output=args.output,
+                separate=not args.join,
+                index=args.index,
+                force=args.force,
+            )
+            _print_conversion_summary(result)
+            return 0
+        if args.command in {"md2ipynb", "create", "import"}:
+            result = convert_markdown_paths_to_notebooks(
+                inputs=args.inputs,
+                output=args.output,
+                separate=not args.join,
+                index=args.index,
+                force=args.force,
+            )
+            _print_conversion_summary(result)
+            return 0
+    except ValueError as error:
+        print(f"ERROR: {error}", file=sys.stderr)
+        return 2
     raise ValueError(f"Unknown command: {args.command}")
 
 
